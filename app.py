@@ -18,13 +18,13 @@ df_all = pd.concat([df4, df6, df7, df9, df10], ignore_index=True)
 
 # --- Deduplicate NGSS Practices while keeping full descriptions ---
 df_all["NGSS Practice"] = df_all["NGSS Practice"].astype(str).str.strip()
-unique_practices = sorted(df_all["NGSS Practice"].dropna().unique(), key=lambda x: int(re.search(r"NGSS (\d+)", x).group(1)) if re.search(r"NGSS (\d+)", x) else 999)
+unique_practices = sorted(
+    df_all["NGSS Practice"].dropna().unique(),
+    key=lambda x: int(re.search(r"NGSS (\d+)", x).group(1)) if re.search(r"NGSS (\d+)", x) else 999
+)
 
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 
 with st.sidebar:
     st.header("Filters")
     grades = st.multiselect(
-        "Grade(s)", 
-        ["4th", "6th", "7th", "9th", "10th"], 
-        default=["4th", "6th", "7th", "9th", "10t]()
