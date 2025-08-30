@@ -1,21 +1,56 @@
-Grade,NGSS Practice,Unit,Activity/Assessment
-10th,NGSS 1,A1 Thermodynamics and the Earth,Initial Model
-10th,NGSS 1,A2 Structure of Matter,In Class Questions
-10th,NGSS 1,A3 Bonding and Molecules,In Class Questions (VSEPR — What causes physical properties?)
-10th,NGSS 1,"A5 Acids, Bases, Equilibrium",In Class Questions; Initial Model: What’s Killing the Oysters
-10th,NGSS 1,A6 Redox,"In Class Questions (Electrochemical Cell, Flint Water Crisis problems)"
-10th,NGSS 2,A1 Thermodynamics and the Earth,Initial Model on Sea Level Rising; Math Model of Land Ice Melting
-10th,NGSS 2,A2 Structure of Matter,PT as a Model (Periodicity); Atomic Model
-10th,NGSS 2,"A5 Acids, Bases, Equilibrium",Initial Model (What’s Killing the Oysters); Neutralization Particle Model; Collision Theory Particle Model
-10th,NGSS 2,A6 Redox,Redox Reactions Particle Model
-10th,NGSS 3,A1 Thermodynamics and the Earth,Liquid-Liquid Energy Transfer Activity; Lab: Density of Liquids; Lab: Heat of Fusion of Wax
-10th,NGSS 4,A1 Thermodynamics and the Earth,NASA OMG Project; Reading on Earth’s Atmosphere
-10th,NGSS 4,"A5 Acids, Bases, Equilibrium",Short Lab: Sly-MF II; Short Lab: Oyster Titration; Reaction Rate: Quantitative Rate from Graphs
-10th,NGSS 5,A1 Thermodynamics and the Earth,Sea Level Calculations; Unit Conversion Practice; Heat Capacity & Energy Transfer
-10th,NGSS 5,A2 Structure of Matter,Atomic Mass & Mole Calculation: Mole to Mass & Mass to Mole
-10th,NGSS 5,"A5 Acids, Bases, Equilibrium",ICE Calculations; Neutralization
-10th,NGSS 6,A1 Thermodynamics and the Earth,Sea Level Calculations; Simulation Comparison; Review Initial Model
-10th,NGSS 6,"A5 Acids, Bases, Equilibrium",Ocean pH Remediation; Initial Model (What’s Killing the Oysters)
-10th,NGSS 7,A1 Thermodynamics and the Earth,Lab: Heat of Fusion of Wax
-10th,NGSS 8,A1 Thermodynamics and the Earth,Homework Review
-10th,NGSS 8,"A5 Acids, Bases, Equilibrium",Present In-Class Problems; Lab-based Presentations
+Grade,NGSS Number,NGSS Description,Unit Number,Unit Title,Activity
+10th,NGSS 1,Asking questions and defining problems,A1,Thermodynamics and the Earth,Initial Model
+10th,NGSS 1,Asking questions and defining problems,A2,Structure of Matter & The Periodic Table of the Elements,In Class Questions
+10th,NGSS 1,Asking questions and defining problems,A3,Nomenclature, Bonding, and Molecules,In Class Questions VSEPR - What causes physical properties?
+10th,NGSS 1,Asking questions and defining problems,A4,Solutions and Concentration,-
+10th,NGSS 1,Asking questions and defining problems,A5,Acids, Bases, Kinetics, and Equilibrium,In Class Questions; Initial Model: What’s Killing the Oysters
+10th,NGSS 1,Asking questions and defining problems,A6,Redox and Electrochemistry,In Class Questions; Building an Electrochemical Cell; Flint Water Crisis Problems
+
+10th,NGSS 2,Developing and using models,A1,Thermodynamics and the Earth,Heat Transfer Model
+10th,NGSS 2,Developing and using models,A2,Structure of Matter & The Periodic Table of the Elements,Atomic Models
+10th,NGSS 2,Developing and using models,A3,Nomenclature, Bonding, and Molecules,VSEPR Models
+10th,NGSS 2,Developing and using models,A4,Solutions and Concentration,Modeling Solutions
+10th,NGSS 2,Developing and using models,A5,Acids, Bases, Kinetics, and Equilibrium,What’s Killing the Oysters Models
+10th,NGSS 2,Developing and using models,A6,Redox and Electrochemistry,Electrochemical Cell Models
+
+10th,NGSS 3,Planning and carrying out investigations,A1,Thermodynamics and the Earth,Heat Transfer Lab
+10th,NGSS 3,Planning and carrying out investigations,A2,Structure of Matter & The Periodic Table of the Elements,Periodic Table Investigations
+10th,NGSS 3,Planning and carrying out investigations,A3,Nomenclature, Bonding, and Molecules,VSEPR Lab
+10th,NGSS 3,Planning and carrying out investigations,A4,Solutions and Concentration,Dissolving Rate Investigation
+10th,NGSS 3,Planning and carrying out investigations,A5,Acids, Bases, Kinetics, and Equilibrium,What’s Killing the Oysters Investigation
+10th,NGSS 3,Planning and carrying out investigations,A6,Redox and Electrochemistry,Electrochemical Cell Investigation
+
+10th,NGSS 4,Analyzing and interpreting data,A1,Thermodynamics and the Earth,Analysis of Heat Transfer Lab
+10th,NGSS 4,Analyzing and interpreting data,A2,Structure of Matter & The Periodic Table of the Elements,Analysis of Periodic Trends
+10th,NGSS 4,Analyzing and interpreting data,A3,Nomenclature, Bonding, and Molecules,VSEPR Data Analysis
+10th,NGSS 4,Analyzing and interpreting data,A4,Solutions and Concentration,Analysis of Solutions Lab
+10th,NGSS 4,Analyzing and interpreting data,A5,Acids, Bases, Kinetics, and Equilibrium,Analysis of Oysters Lab
+10th,NGSS 4,Analyzing and interpreting data,A6,Redox and Electrochemistry,Analysis of Electrochemical Cell Lab
+
+10th,NGSS 5,Using mathematical and computational thinking,A1,Thermodynamics and the Earth,Heat Transfer Calculations
+10th,NGSS 5,Using mathematical and computational thinking,A2,Structure of Matter & The Periodic Table of the Elements,Atomic Calculations
+10th,NGSS 5,Using mathematical and computational thinking,A3,Nomenclature, Bonding, and Molecules,VSEPR Geometry Calculations
+10th,NGSS 5,Using mathematical and computational thinking,A4,Solutions and Concentration,Concentration Calculations
+10th,NGSS 5,Using mathematical and computational thinking,A5,Acids, Bases, Kinetics, and Equilibrium,Rate Law Calculations
+10th,NGSS 5,Using mathematical and computational thinking,A6,Redox and Electrochemistry,Electrochemical Calculations
+
+10th,NGSS 6,Constructing explanations and designing solutions,A1,Thermodynamics and the Earth,Heat Transfer Explanations
+10th,NGSS 6,Constructing explanations and designing solutions,A2,Structure of Matter & The Periodic Table of the Elements,Periodic Table Explanations
+10th,NGSS 6,Constructing explanations and designing solutions,A3,Nomenclature, Bonding, and Molecules,VSEPR Explanations
+10th,NGSS 6,Constructing explanations and designing solutions,A4,Solutions and Concentration,Concentration Explanations
+10th,NGSS 6,Constructing explanations and designing solutions,A5,Acids, Bases, Kinetics, and Equilibrium,What’s Killing the Oysters Explanations
+10th,NGSS 6,Constructing explanations and designing solutions,A6,Redox and Electrochemistry,Electrochemical Explanations
+
+10th,NGSS 7,Engaging in argument from evidence,A1,Thermodynamics and the Earth,Argument from Heat Transfer Evidence
+10th,NGSS 7,Engaging in argument from evidence,A2,Structure of Matter & The Periodic Table of the Elements,Argument from Periodic Evidence
+10th,NGSS 7,Engaging in argument from evidence,A3,Nomenclature, Bonding, and Molecules,Argument from VSEPR Data
+10th,NGSS 7,Engaging in argument from evidence,A4,Solutions and Concentration,Argument from Solutions Data
+10th,NGSS 7,Engaging in argument from evidence,A5,Acids, Bases, Kinetics, and Equilibrium,Argument from Oysters Data
+10th,NGSS 7,Engaging in argument from evidence,A6,Redox and Electrochemistry,Argument from Electrochemical Data
+
+10th,NGSS 8,Obtaining, evaluating, and communicating information,A1,Thermodynamics and the Earth,Communicating Heat Transfer Findings
+10th,NGSS 8,Obtaining, evaluating, and communicating information,A2,Structure of Matter & The Periodic Table of the Elements,Communicating Periodic Findings
+10th,NGSS 8,Obtaining, evaluating, and communicating information,A3,Nomenclature, Bonding, and Molecules,Communicating VSEPR Findings
+10th,NGSS 8,Obtaining, evaluating, and communicating information,A4,Solutions and Concentration,Communicating Solutions Findings
+10th,NGSS 8,Obtaining, evaluating, and communicating information,A5,Acids, Bases, Kinetics, and Equilibrium,Communicating What’s Killing the Oysters
+10th,NGSS 8,Obtaining, evaluating, and communicating information,A6,Redox and Electrochemistry,Communicating Electrochemical Findings
