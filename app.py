@@ -39,7 +39,10 @@ else:
     else:
         st.subheader(f"Results for {selected_ngss}")
 
-        # Pivot table: columns = Unit_Number, values = Unit_Title + Activity
+        # 🔹 Get ALL possible Unit_Numbers across all grades (A0, A1, A2, etc.)
+        all_units = sorted(df_all["Unit_Number"].unique(), key=lambda x: int(x[1:]))
+
+        # Pivot only current filter, but keep all units
         pivot_df = df_filtered.pivot_table(
             index="Grade",
             columns="Unit_Number",
@@ -48,21 +51,27 @@ else:
             fill_value="-"
         )
 
-        # Merge Unit_Title + Activity into one cell, header only A0, A1...
-        new_cols = []
-        for col in pivot_df.columns.levels[1]:  # iterate over each Unit_Number
-            pivot_df[(col)] = pivot_df["Unit_Title"][col] + ": " + pivot_df["Activity"][col]
-            new_cols.append(col)
+        # Build merged table with bold Unit_Title + Activity on new line
+        merged = {}
+        for unit in all_units:
+            if unit in pivot_df["Unit_Title"].columns:
+                merged[unit] = (
+                    "<b>" + pivot_df["Unit_Title"][unit].replace("-", "").fillna("-") + "</b>"
+                    + "<br><span style='font-size:12px;'>" 
+                    + pivot_df["Activity"][unit].fillna("-") + "</span>"
+                )
+            else:
+                merged[unit] = "-"
 
-        pivot_df = pivot_df[new_cols].reset_index()
+        result_df = pd.DataFrame(merged, index=pivot_df.index).reset_index()
 
-        # Clean up NaNs and formatting
-        pivot_df = pivot_df.replace({
-            "nan: nan": "-",
-            "nan": "-",
-            ": -": "-",
-            "-:": "-"
-        })
+        # 🔹 Order grades correctly
+        grade_order = ["4th", "5th", "6th", "7th", "8th", "9th", "10th"]
+        result_df["Grade"] = pd.Categorical(result_df["Grade"], categories=grade_order, ordered=True)
+        result_df = result_df.sort_values("Grade")
 
-        # Display
-        st.dataframe(pivot_df, use_container_width=True)
+        # Display with HTML rendering
+        st.write(
+            result_df.to_html(escape=False, index=False),
+            unsafe_allow_html=True
+        )
