@@ -36,15 +36,13 @@ unique_practices = sorted(
 # --- Build unified NGSS practice labels ---
 practice_labels = []
 for p in unique_practices:
-    # If the practice already has description, keep it
     if ":" in p:
         practice_labels.append(p)
     else:
-        # If only "NGSS 1", try to find longer description in dataset
         match = df_all[df_all["NGSS Practice"].str.startswith(p)].iloc[0]["NGSS Practice"]
         practice_labels.append(match)
 
-# Remove duplicates and sort
+# Remove duplicates and sort again
 practice_labels = sorted(set(practice_labels), key=practice_sort_key)
 
 # --- UI ---
@@ -64,13 +62,16 @@ mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"].str.startswith(
 filtered = df_all[mask].copy()
 
 if not filtered.empty:
-    # Pivot Grades × Unit Codes
-    pivot = filtered.pivot_table(
-        index="Grade",
-        columns="Unit Code",
-        values="Activity/Assessment",
-        aggfunc=lambda x: ", ".join(sorted(set(x)))
-    ).fillna("")
+    # Group by Grade + Unit so we can attach unit headers only once
+    def format_cell(group):
+        unit_title = group["Unit"].iloc[0]
+        unit_code = group["Unit Code"].iloc[0]
+        header = f"<b><u>{unit_code}: {unit_title}</u></b>"
+        assignments = "<br>".join(group["Activity/Assessment"].dropna().unique())
+        return f"{header}<br>{assignments}" if assignments else header
+
+    formatted = filtered.groupby(["Grade", "Unit Code"]).apply(format_cell).reset_index()
+    pivot = formatted.pivot(index="Grade", columns="Unit Code", values=0).fillna("")
 
     # Sort columns numerically by A#
     def sort_key(col):
@@ -79,14 +80,16 @@ if not filtered.empty:
     pivot = pivot[sorted(pivot.columns, key=sort_key)]
 
     st.subheader(f"Results for {practice}")
-    st.dataframe(pivot, use_container_width=True)
 
-    # Download option
-    csv = pivot.to_csv().encode("utf-8")
+    # Render as HTML table so formatting works
+    st.markdown(pivot.to_html(escape=False), unsafe_allow_html=True)
+
+    # Download option (plain text, no HTML formatting)
+    csv = filtered.to_csv(index=False).encode("utf-8")
     st.download_button(
-        "Download table as CSV",
+        "Download raw data as CSV",
         csv,
-        file_name="ngss_comparison.csv",
+        file_name="ngss_comparison_raw.csv",
         mime="text/csv"
     )
 
