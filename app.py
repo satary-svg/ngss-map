@@ -1,110 +1,72 @@
 import streamlit as st
 import pandas as pd
-import re
 import glob
-import os
+import re
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="NGSS Practices Map", layout="wide")
 
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 
 # --- Load all CSVs ---
-data_files = glob.glob("data/*_database.csv")
-all_dfs = []
+all_files = glob.glob("data/*_database.csv")
+df_list = []
 
-for file in data_files:
-    grade = os.path.basename(file).split("_")[0]
+for file in all_files:
+    grade = re.search(r"(\d+)th", file).group(1) + "th"
     df = pd.read_csv(file)
     df["Grade"] = grade
-    all_dfs.append(df)
+    df_list.append(df)
 
-df_all = pd.concat(all_dfs, ignore_index=True)
-
-# --- Figure out the unit column (different files might call it differently) ---
-unit_col = None
-for candidate in ["Unit Code", "Unit", "Unit_Name"]:
-    if candidate in df_all.columns:
-        unit_col = candidate
-        break
-
-if not unit_col:
-    st.error("Could not find a Unit column in the data. Please check your CSV headers.")
-    st.stop()
-
-# --- Unique practices (sorted) ---
-unique_practices = sorted(
-    df_all["NGSS Practice"].dropna().unique(),
-    key=lambda x: int(re.search(r"\d+", x).group()) if re.search(r"\d+", x) else 999
-)
+df_all = pd.concat(df_list, ignore_index=True)
 
 # --- Sidebar filters ---
 st.sidebar.header("Filters")
 
 grades = st.sidebar.multiselect(
     "Grade(s)",
-    options=sorted(df_all["Grade"].unique(), key=lambda x: int(re.sub(r"\D", "", x))),
-    default=sorted(df_all["Grade"].unique(), key=lambda x: int(re.sub(r"\D", "", x))),
+    options=sorted(df_all["Grade"].unique(), key=lambda x: int(re.search(r"\d+", x).group())),
+    default=sorted(df_all["Grade"].unique(), key=lambda x: int(re.search(r"\d+", x).group()))
 )
 
-practice = st.sidebar.selectbox("NGSS Practice", unique_practices)
+# Build practice list
+unique_practices = sorted(df_all["NGSS Practice"].unique(),
+                          key=lambda x: int(re.search(r"NGSS (\d+)", x).group(1)) if re.search(r"NGSS (\d+)", x) else 999)
 
-# --- Filtered dataframe ---
-mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
-filtered = df_all[mask]
+practice = st.sidebar.selectbox("NGSS Practice", options=unique_practices)
 
+# --- Filter data ---
+filtered = df_all[(df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)].copy()
+
+# Clean up Unit column (remove A#:)
+filtered["Unit_clean"] = filtered["Unit"].str.replace(r"^A\d+:\s*", "", regex=True)
+
+# --- Pivot table ---
+pivot = filtered.pivot_table(
+    index="Grade",
+    columns="Unit",
+    values="Activity/Assessment",
+    aggfunc=lambda x: "<br>".join(x),
+    fill_value=""
+)
+
+# --- Format cells ---
+def format_cell(unit, activities):
+    if isinstance(activities, str) and activities.strip():
+        return f"<b><u>{re.sub(r'^A\\d+:\\s*', '', unit)}</u></b><br>{activities}"
+    return ""
+
+pivot = pivot.apply(lambda col: [format_cell(col.name, val) for val in col])
+
+# Reset index so Grade shows
+pivot.reset_index(inplace=True)
+
+# --- Display ---
 st.subheader(f"Results for {practice}")
+st.write(
+    pivot.to_html(escape=False, index=False),
+    unsafe_allow_html=True
+)
 
-if not filtered.empty:
-    # Pivot table: rows=Grade, cols=Unit, values=Assignments
-    pivot = filtered.pivot_table(
-        index="Grade", 
-        columns=unit_col, 
-        values="Assignment Title", 
-        aggfunc=lambda x: list(x),
-        fill_value=""
-    )
-
-    # --- Format cells ---
-    formatted = pivot.copy()
-    for col in formatted.columns:
-        new_col = []
-        for grade in formatted.index:
-            items = formatted.loc[grade, col]
-            if isinstance(items, list) and items:
-                # Clean unit title (remove A# prefix)
-                unit_clean = re.sub(r"^A\d+:\s*", "", str(col))
-                unit_header = f"<b><u>{unit_clean}</u></b>"
-                cell_text = unit_header + "<br>" + "<br>".join(items)
-            else:
-                cell_text = ""
-            new_col.append(cell_text)
-        formatted[col] = new_col
-
-    # --- Ensure chronological order of rows ---
-    formatted.index = pd.Categorical(
-        formatted.index,
-        categories=sorted(df_all["Grade"].unique(), key=lambda x: int(re.sub(r"\D", "", x))),
-        ordered=True
-    )
-    formatted = formatted.sort_index()
-
-    # Reset index for display
-    formatted.reset_index(inplace=True)
-
-    # Display HTML table
-    st.write(
-        formatted.to_html(escape=False, index=False),
-        unsafe_allow_html=True
-    )
-
-    # CSV download
-    csv = formatted.to_csv(index=False)
-    st.download_button(
-        "Download table as CSV",
-        data=csv,
-        file_name="ngss_practice_map.csv",
-        mime="text/csv"
-    )
-
-else:
-    st.info("No data available for this selection.")
+# --- Download button ---
+csv = pivot.to_csv(index=False)
+st.download_button("Download table as CSV", csv, "ngss_results.csv", "text/csv")
