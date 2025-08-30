@@ -18,33 +18,30 @@ with st.sidebar:
     st.header("Filters")
     grades = st.multiselect("Grade(s)", ["7th", "9th"], default=["7th", "9th"])
     practices = sorted(df_all["NGSS Practice"].unique())
-    practice = st.selectbox("NGSS Practice", practices, index=practices.index(practices[0]))
-    search = st.text_input("Search (unit/activity contains...)", value="")
-    show_category = st.checkbox("Show Category column", value=True)
-    st.markdown("---")
-    st.caption("Tip: Use the search box to filter by unit keywords (e.g., 'Enzymes') or activity names.")
+    practice = st.selectbox("NGSS Practice", practices, index=0)
 
+# --- Filter dataset ---
 mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
-if search.strip():
-    s = search.strip().lower()
-    mask &= df_all["Unit"].str.lower().str.contains(s) | df_all["Activity/Assessment"].str.lower().str.contains(s)
-
 filtered = df_all[mask].copy()
 
-st.subheader("Results")
-cols = ["Grade", "NGSS Practice", "Unit", "Activity/Assessment"]
-if show_category and "Category" in filtered.columns:
-    cols.append("Category")
+# --- Pivot table: Grades = rows, Units = columns, Activities = values ---
+if not filtered.empty:
+    # Extract just the unit codes like "A0", "A1" etc.
+    filtered["Unit Code"] = filtered["Unit"].str.extract(r"(A\d+)")
+    
+    pivot = filtered.pivot_table(
+        index="Grade",
+        columns="Unit Code",
+        values="Activity/Assessment",
+        aggfunc=lambda x: ", ".join(sorted(set(x)))
+    ).fillna("")
+    
+    st.subheader("Results (Assignments by Grade and Unit)")
+    st.dataframe(pivot, use_container_width=True)
+    
+    # Allow download
+    csv = pivot.to_csv().encode("utf-8")
+    st.download_button("Download table as CSV", csv, file_name="ngss_comparison.csv", mime="text/csv")
 
-if filtered.empty:
-    st.info("No matches. Try changing the practice, grades, or search.")
 else:
-    st.dataframe(filtered[cols], use_container_width=True, hide_index=True)
-
-# Download
-csv = filtered[cols].to_csv(index=False).encode("utf-8")
-st.download_button("Download results as CSV", csv, file_name="ngss_results.csv", mime="text/csv")
-
-# Footer
-st.markdown("---")
-st.caption("Prototype • Built for quick exploration of NGSS practices across 7th & 9th grade.")
+    st.info("No matches found for this practice in the selected grade(s).")
