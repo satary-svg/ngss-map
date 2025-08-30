@@ -76,11 +76,25 @@ st.subheader(f"Results for {selected_practice}")
 
 # Add custom CSS for taller cells
 st.markdown(
-    
+    """
     <style>
     table {
         border-collapse: collapse;
         width: 100%;
     }
     th, td {
-        border: 1px solid #ddd
+        border: 1px solid #ddd;
+        text-align: left;
+        padding: 12px;
+        vertical-align: top;
+        min-width: 180px;
+    }
+    th {
+        background-color: #f4f4f4;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+ 
