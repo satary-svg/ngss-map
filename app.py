@@ -1,13 +1,16 @@
 import streamlit as st
 import pandas as pd
 import re
+import os
 
 st.set_page_config(layout="wide")
 
 # -------------------------------
-# Load all grade CSVs
+# Load CSVs (either from disk or upload)
 # -------------------------------
-files = {
+st.sidebar.subheader("Upload Grade CSVs (if not in working directory)")
+
+grades_files = {
     "4th": "4th_database.csv",
     "6th": "6th_database.csv",
     "7th": "7th_database.csv",
@@ -16,17 +19,26 @@ files = {
 }
 
 dfs = []
-for grade, file in files.items():
-    df = pd.read_csv(file)
+for grade, default_filename in grades_files.items():
+    uploaded_file = st.sidebar.file_uploader(f"Upload {grade} CSV", type="csv", key=grade)
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+    elif os.path.exists(default_filename):
+        df = pd.read_csv(default_filename)
+    else:
+        st.warning(f"⚠️ Missing file for {grade} (upload or place {default_filename} in working directory)")
+        continue
     df["Grade"] = grade
     dfs.append(df)
+
+if not dfs:
+    st.stop()
 
 df_all = pd.concat(dfs, ignore_index=True)
 
 # -------------------------------
 # Clean Unit fields
 # -------------------------------
-# Split "A1: Thermodynamics" → Unit Code = "A1", Unit Title = "Thermodynamics"
 df_all["Unit Code"] = df_all["Unit"].str.extract(r"(A\d+)")
 df_all["Unit Title"] = df_all["Unit"].str.replace(r"A\d+:\s*", "", regex=True)
 
@@ -44,7 +56,6 @@ selected_practice = st.sidebar.selectbox("NGSS Practice", practices)
 # -------------------------------
 filtered = df_all[(df_all["Grade"].isin(selected_grades)) & (df_all["NGSS Practice"] == selected_practice)]
 
-# Build formatted content for each cell
 filtered["Cell Content"] = (
     "<b><u>" + filtered["Unit Title"] + "</u></b><br>" +
     filtered["Activity/Assessment"].fillna("").str.replace(",", "<br>")
@@ -61,11 +72,9 @@ pivot = filtered.pivot_table(
     fill_value=""
 )
 
-# Ensure chronological grade order in rows
 grade_order = ["4th", "6th", "7th", "9th", "10th"]
 pivot = pivot.reindex(grade_order)
 
-# Sort unit columns numerically (A0, A1, A2, …)
 pivot = pivot.reindex(sorted(pivot.columns, key=lambda x: int(x[1:])), axis=1)
 
 # -------------------------------
@@ -74,14 +83,12 @@ pivot = pivot.reindex(sorted(pivot.columns, key=lambda x: int(x[1:])), axis=1)
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 st.subheader(f"Results for {selected_practice}")
 
-# Apply formatting
 styler = pivot.style.set_properties(**{
     "text-align": "left",
     "vertical-align": "top",
     "white-space": "pre-wrap"
 })
 
-# Display HTML-styled table
 st.markdown(styler.to_html(), unsafe_allow_html=True)
 
 # -------------------------------
