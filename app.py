@@ -1,97 +1,104 @@
 import streamlit as st
 import pandas as pd
 import re
+import glob
+import os
 
-st.set_page_config(page_title="NGSS Practices Map (Grades 4–10)", layout="wide")
+st.set_page_config(layout="wide")
 
-@st.cache_data
-def load_data():
-    df4 = pd.read_csv("data/4th_database.csv")
-    df6 = pd.read_csv("data/6th_database.csv")
-    df7 = pd.read_csv("data/7th_database.csv")
-    df9 = pd.read_csv("data/9th_database.csv")
-    df10 = pd.read_csv("data/10th_database.csv")
-    return df4, df6, df7, df9, df10
-
-# Combine all grades into one DataFrame
-df4, df6, df7, df9, df10 = load_data()
-df_all = pd.concat([df4, df6, df7, df9, df10], ignore_index=True)
-
-# Normalize NGSS practices
-df_all["NGSS Practice"] = df_all["NGSS Practice"].astype(str).str.strip()
-
-# Extract just the unit codes (A0, A1, …)
-df_all["Unit Code"] = df_all["Unit"].str.extract(r"(A\d+)")
-
-# --- Sort NGSS practices safely ---
-def practice_sort_key(x):
-    match = re.search(r"NGSS (\d+)", str(x))
-    return int(match.group(1)) if match else 999
-
-unique_practices = sorted(
-    df_all["NGSS Practice"].dropna().unique(),
-    key=practice_sort_key
-)
-
-# --- Build unified NGSS practice labels ---
-practice_labels = []
-for p in unique_practices:
-    if ":" in p:
-        practice_labels.append(p)
-    else:
-        match = df_all[df_all["NGSS Practice"].str.startswith(p)].iloc[0]["NGSS Practice"]
-        practice_labels.append(match)
-
-# Remove duplicates and sort again
-practice_labels = sorted(set(practice_labels), key=practice_sort_key)
-
-# --- UI ---
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 
-with st.sidebar:
-    st.header("Filters")
-    grades = st.multiselect(
-        "Grade(s)",
-        ["4th", "6th", "7th", "9th", "10th"],
-        default=["4th", "6th", "7th", "9th", "10th"]
-    )
-    practice = st.selectbox("NGSS Practice", practice_labels, index=0)
+# --- Load all CSVs ---
+data_files = glob.glob("data/*_database.csv")
+all_dfs = []
 
-# --- Filter dataset ---
-mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"].str.startswith(practice.split(":")[0]))
-filtered = df_all[mask].copy()
+for file in data_files:
+    grade = os.path.basename(file).split("_")[0]
+    df = pd.read_csv(file)
+    df["Grade"] = grade
+    all_dfs.append(df)
+
+df_all = pd.concat(all_dfs, ignore_index=True)
+
+# --- Unique practices (sorted) ---
+unique_practices = sorted(
+    df_all["NGSS Practice"].dropna().unique(),
+    key=lambda x: int(re.search(r"\d+", x).group()) if re.search(r"\d+", x) else 999
+)
+
+# --- Sidebar filters ---
+st.sidebar.header("Filters")
+
+grades = st.sidebar.multiselect(
+    "Grade(s)",
+    options=sorted(df_all["Grade"].unique(), key=lambda x: int(re.sub(r"\D", "", x))),
+    default=sorted(df_all["Grade"].unique(), key=lambda x: int(re.sub(r"\D", "", x))),
+)
+
+practice = st.sidebar.selectbox("NGSS Practice", unique_practices)
+
+# --- Filtered dataframe ---
+mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
+filtered = df_all[mask]
+
+st.subheader(f"Results for {practice}")
 
 if not filtered.empty:
-    # Group by Grade + Unit so we can attach unit headers only once
-    def format_cell(group):
-        unit_title = group["Unit"].iloc[0]
-        unit_code = group["Unit Code"].iloc[0]
-        header = f"<b><u>{unit_code}: {unit_title}</u></b>"
-        assignments = "<br>".join(group["Activity/Assessment"].dropna().unique())
-        return f"{header}<br>{assignments}" if assignments else header
+    # Pivot table: rows=Grade, cols=Unit, values=Assignments
+    pivot = filtered.pivot_table(
+        index="Grade", 
+        columns="Unit Code", 
+        values="Assignment Title", 
+        aggfunc=lambda x: list(x),
+        fill_value=""
+    )
 
-    formatted = filtered.groupby(["Grade", "Unit Code"]).apply(format_cell).reset_index()
-    pivot = formatted.pivot(index="Grade", columns="Unit Code", values=0).fillna("")
+    # --- Format cells ---
+    formatted = pivot.copy()
+    for col in formatted.columns:
+        new_col = []
+        for grade in formatted.index:
+            items = formatted.loc[grade, col]
+            if isinstance(items, list) and items:
+                # Clean unit title (remove A# prefix)
+                unit_clean = re.sub(r"^A\d+:\s*", "", str(col))
+                unit_header = f"<b><u>{unit_clean}</u></b>"
+                cell_text = unit_header + "<br>" + "<br>".join(items)
+            else:
+                cell_text = ""
+            new_col.append(cell_text)
+        formatted[col] = new_col
 
-    # Sort columns numerically by A#
-    def sort_key(col):
-        match = re.search(r"A(\d+)", str(col))
-        return int(match.group(1)) if match else 999
-    pivot = pivot[sorted(pivot.columns, key=sort_key)]
+    # --- Ensure chronological order of rows ---
+    formatted.index = pd.Categorical(
+        formatted.index,
+        categories=sorted(df_all["Grade"].unique(), key=lambda x: int(re.sub(r"\D", "", x))),
+        ordered=True
+    )
+    formatted = formatted.sort_index()
 
-    st.subheader(f"Results for {practice}")
+    # --- Remove redundant Unit Code col if present ---
+    if "Unit Code" in formatted.columns:
+        formatted = formatted.drop(columns=["Unit Code"])
 
-    # Render as HTML table so formatting works
-    st.markdown(pivot.to_html(escape=False), unsafe_allow_html=True)
+    # Reset index for display
+    formatted.reset_index(inplace=True)
+    formatted.rename(columns={"Grade": "Grade"}, inplace=True)
 
-    # Download option (plain text, no HTML formatting)
-    csv = filtered.to_csv(index=False).encode("utf-8")
+    # Display HTML table with custom formatting
+    st.write(
+        formatted.to_html(escape=False, index=False),
+        unsafe_allow_html=True
+    )
+
+    # CSV download
+    csv = formatted.to_csv(index=False)
     st.download_button(
-        "Download raw data as CSV",
-        csv,
-        file_name="ngss_comparison_raw.csv",
+        "Download table as CSV",
+        data=csv,
+        file_name="ngss_practice_map.csv",
         mime="text/csv"
     )
 
 else:
-    st.info("No matches found for this practice in the selected grade(s).")
+    st.info("No data available for this selection.")
