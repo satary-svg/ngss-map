@@ -16,8 +16,9 @@ def load_data():
 df4, df6, df7, df9, df10 = load_data()
 df_all = pd.concat([df4, df6, df7, df9, df10], ignore_index=True)
 
-# --- Normalize NGSS Practice names ---
-df_all["NGSS Practice"] = df_all["NGSS Practice"].astype(str).str.extract(r"(NGSS \d+)")
+# --- Deduplicate NGSS Practices while keeping full descriptions ---
+df_all["NGSS Practice"] = df_all["NGSS Practice"].astype(str).str.strip()
+unique_practices = sorted(df_all["NGSS Practice"].dropna().unique(), key=lambda x: int(re.search(r"NGSS (\d+)", x).group(1)) if re.search(r"NGSS (\d+)", x) else 999)
 
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 
@@ -26,44 +27,4 @@ with st.sidebar:
     grades = st.multiselect(
         "Grade(s)", 
         ["4th", "6th", "7th", "9th", "10th"], 
-        default=["4th", "6th", "7th", "9th", "10th"]
-    )
-    practices = sorted(df_all["NGSS Practice"].dropna().unique())
-    practice = st.selectbox("NGSS Practice", practices, index=0)
-
-# --- Filter dataset ---
-mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
-filtered = df_all[mask].copy()
-
-if not filtered.empty:
-    # Extract just the unit codes like "A0", "A1", etc.
-    filtered["Unit Code"] = filtered["Unit"].str.extract(r"(A\d+)")
-
-    # Pivot into Grades × Unit Codes
-    pivot = filtered.pivot_table(
-        index="Grade",
-        columns="Unit Code",
-        values="Activity/Assessment",
-        aggfunc=lambda x: ", ".join(sorted(set(x)))
-    ).fillna("")
-
-    # Sort columns in natural numeric order
-    def sort_key(col):
-        match = re.search(r"A(\d+)", str(col))
-        return int(match.group(1)) if match else 999
-    pivot = pivot[sorted(pivot.columns, key=sort_key)]
-
-    st.subheader("Results (Assignments by Grade and Unit)")
-    st.dataframe(pivot, use_container_width=True)
-
-    # Download option
-    csv = pivot.to_csv().encode("utf-8")
-    st.download_button(
-        "Download table as CSV",
-        csv,
-        file_name="ngss_comparison.csv",
-        mime="text/csv"
-    )
-
-else:
-    st.info("No matches found for this practice in the selected grade(s).")
+        default=["4th", "6th", "7th", "9th", "10t]()
