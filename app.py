@@ -2,87 +2,85 @@ import streamlit as st
 import pandas as pd
 import os
 
-st.set_page_config(page_title="NGSS Practices Map", layout="wide")
+st.set_page_config(page_title="NGSS Skills Map", layout="wide")
 
-st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
+# Title
+st.title("📘 NGSS Practices Map (Grades 4–10)")
 
-# -------------------
-# Load CSVs
-# -------------------
-data_files = {
-    "4th": "data/4th_database.csv",
-    "6th": "data/6th_database.csv",
-    "7th": "data/7th_database.csv",
-    "9th": "data/9th_database.csv",
-    "10th": "data/10th_database.csv",
-}
+# Load all CSVs
+data_path = "data"
+all_files = [
+    "4th_database.csv",
+    "6th_database.csv",
+    "7th_database.csv",
+    "9th_database.csv",
+    "10th_database.csv"
+]
 
 dfs = []
-for grade, file in data_files.items():
-    if os.path.exists(file):
-        df = pd.read_csv(file)
-        df["Grade"] = grade
+for file in all_files:
+    file_path = os.path.join(data_path, file)
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path)
         dfs.append(df)
     else:
-        st.warning(f"⚠️ Missing file for {grade} (upload or place {file} in working directory)")
+        st.error(f"Missing file: {file}")
 
 if not dfs:
     st.stop()
 
-df_all = pd.concat(dfs, ignore_index=True)
+data = pd.concat(dfs, ignore_index=True)
 
-# -------------------
-# Sidebar Filters
-# -------------------
-st.sidebar.header("Filters")
+# Ensure consistent ordering of grades
+grade_order = ["4th", "6th", "7th", "9th", "10th"]
+data["Grade"] = pd.Categorical(data["Grade"], categories=grade_order, ordered=True)
 
-# NGSS Practices dropdown (show full names)
-practices = sorted(df_all["NGSS Practice"].dropna().unique())
-selected_practice = st.sidebar.selectbox("NGSS Practice", practices, format_func=lambda x: str(x))
+# Dropdown for NGSS practices (number + description)
+data["NGSS Combined"] = data["NGSS Number"] + " - " + data["NGSS Description"]
+skills = sorted(data["NGSS Combined"].unique())
+selected_skill = st.selectbox("Select an NGSS Practice:", skills)
 
-# Grades multiselect
-all_grades = ["4th", "6th", "7th", "9th", "10th"]
-selected_grades = st.sidebar.multiselect("Grade(s)", all_grades, default=all_grades)
+if selected_skill:
+    # Filter data
+    ngss_number, ngss_desc = selected_skill.split(" - ", 1)
+    filtered = data[(data["NGSS Number"] == ngss_number) & 
+                    (data["NGSS Description"] == ngss_desc)]
 
-# -------------------
-# Filter Data
-# -------------------
-filtered = df_all[
-    (df_all["NGSS Practice"] == selected_practice)
-    & (df_all["Grade"].isin(selected_grades))
-].copy()
+    # Pivot into table format
+    pivot = filtered.pivot_table(
+        index="Grade",
+        columns="Unit Number",
+        values=["Unit Title", "Activity"],
+        aggfunc=lambda x: " | ".join([str(i) for i in x if pd.notna(i) and i != "-"]),
+        fill_value="-"
+    )
 
-# Ensure grades always appear in order
-filtered["Grade"] = pd.Categorical(filtered["Grade"], categories=all_grades, ordered=True)
+    # Flatten MultiIndex columns
+    pivot.columns = [f"{col[1]}" for col in pivot.columns]
 
-# -------------------
-# Pivot Table
-# -------------------
-pivot = filtered.pivot_table(
-    index="Grade",
-    columns="Unit",
-    values="Activity/Assessment",
-    aggfunc=lambda x: "<br>".join(sorted(set(x))),
-    fill_value="-"
-)
+    # Format cells: bold+underline for Unit Title, line breaks for activities
+    def format_cell(row, unit):
+        title = row.get((unit), "-")
+        # Look up the unit title from filtered data
+        subset = filtered[(filtered["Grade"] == row.name) & (filtered["Unit Number"] == unit)]
+        if subset.empty:
+            return "-"
+        unit_title = subset["Unit Title"].values[0]
+        activity = subset["Activity"].values[0]
+        if activity == "-" or pd.isna(activity):
+            return f"**_{unit_title}_**"
+        else:
+            acts = [a.strip() for a in str(activity).split(";")]
+            acts_str = "<br>".join(acts)
+            return f"**<u>{unit_title}</u>**<br>{acts_str}"
 
-# Reset index to show "Grade" as column
-pivot = pivot.reset_index()
+    # Build final styled table
+    final = pd.DataFrame(index=pivot.index)
+    for unit in sorted(filtered["Unit Number"].unique(), key=lambda x: int(x[1:])):
+        final[unit] = pivot.index.map(lambda grade: format_cell(filtered[filtered["Grade"] == grade], unit))
 
-# -------------------
-# Display Results
-# -------------------
-st.subheader(f"Results for {selected_practice}")
+    # Show table with markdown rendering
+    st.write("### NGSS Practice:", selected_skill)
+    st.write("Rows = Grades | Columns = Units | Cells = Unit Title + Activities")
 
-# Apply styling
-def highlight_units(val):
-    if val != "-" and isinstance(val, str):
-        parts = val.split("<br>", 1)
-        unit = f"<b><u>{parts[0]}</u></b>"
-        rest = "<br>".join(parts[1:]) if len(parts) > 1 else ""
-        return f"{unit}<br>{rest}"
-    return "-"
-
-styled = pivot.style.format(highlight_units, escape="html")
-
-st.write(styled.to_html(escape=False), unsafe_allow_html=True)
+    st.write(final.to_html(escape=False), unsafe_allow_html=True)
