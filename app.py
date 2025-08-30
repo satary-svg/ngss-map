@@ -31,37 +31,38 @@ else:
     num = selected_practice.split(":")[0]  # extract NGSS number (e.g. "1")
     df_filtered = df_all[df_all["NGSS_Number"].astype(str) == num]
 
-    # --- Prepare pivot table ---
-    # Combine unit number + title + activity
-    df_filtered["Unit_Display"] = (
-        df_filtered["Unit_Number"].astype(str) + ": " +
-        df_filtered["Unit_Title"].fillna("") + "\n" +
-        df_filtered["Activity"].fillna("")
+    # --- Create Unit Display (Unit Title bold + Activities bulleted) ---
+    def make_display(unit_title, activity):
+        if pd.isna(unit_title) and pd.isna(activity):
+            return "-"
+        title = f"**{unit_title}**" if pd.notna(unit_title) else ""
+        if pd.notna(activity):
+            acts = [a.strip() for a in str(activity).split(",")]
+            acts_fmt = "<br>".join([f"• {a}" for a in acts])
+            return f"{title}<br>{acts_fmt}"
+        return title
+
+    df_filtered["Unit_Display"] = df_filtered.apply(
+        lambda row: make_display(row["Unit_Title"], row["Activity"]), axis=1
     )
 
+    # --- Pivot ---
     pivot_df = df_filtered.pivot_table(
         index="Grade",
         columns="Unit_Number",
         values="Unit_Display",
-        aggfunc=lambda x: " | ".join(x)
+        aggfunc=lambda x: "<br>".join(x)
     ).fillna("-")
 
-    # --- Ensure all A0–A6 appear ---
+    # --- Ensure all units A0–A6 are present ---
     all_units = [f"A{i}" for i in range(7)]
     pivot_df = pivot_df.reindex(columns=all_units, fill_value="-")
 
-    # --- Format table (unit titles bold) ---
-    def format_cell(cell):
-        if cell == "-" or pd.isna(cell):
-            return "-"
-        parts = cell.split("\n", 1)
-        if len(parts) == 2:
-            return f"**{parts[0]}**\n{parts[1]}"
-        else:
-            return f"**{cell}**"
-
-    formatted_df = pivot_df.applymap(format_cell).reset_index()
+    formatted_df = pivot_df.reset_index()
 
     # --- Display ---
     st.subheader(f"Results for {selected_practice}")
-    st.dataframe(formatted_df, use_container_width=True)
+    st.write(
+        formatted_df.to_html(escape=False, index=False),
+        unsafe_allow_html=True
+    )
