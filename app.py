@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import glob
+import re
 
 st.set_page_config(page_title="NGSS Practices Map", layout="wide")
 
@@ -16,12 +17,16 @@ for f in files:
 df_all = pd.concat(dfs, ignore_index=True)
 
 # --- Clean Unit column ---
-# Separate unit code (A1, A2...) and title
 df_all[["Unit Code", "Unit Title"]] = df_all["Unit"].str.split(":", n=1, expand=True)
 df_all["Unit Title"] = df_all["Unit Title"].str.strip()
 
 # --- Sidebar filters ---
-grades = sorted(df_all["Grade"].unique(), key=lambda x: int(x.replace("th", "").replace("th", "").replace("th", "")))
+def grade_to_num(g):
+    """Extract numeric part of grade (e.g. '10th' -> 10)"""
+    match = re.search(r"\d+", g)
+    return int(match.group()) if match else 999
+
+grades = sorted(df_all["Grade"].unique(), key=grade_to_num)
 selected_grades = st.sidebar.multiselect("Grade(s)", grades, default=grades)
 
 practices = sorted(df_all["NGSS Practice"].unique())
@@ -47,7 +52,7 @@ pivot = filtered.pivot_table(
     fill_value=""
 )
 
-# Ensure consistent column order (A0–A6)
+# Ensure consistent column order
 ordered_cols = [f"A{i}" for i in range(7)]
 pivot = pivot.reindex(columns=ordered_cols, fill_value="")
 
@@ -77,6 +82,5 @@ styler = (
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 st.subheader(f"Results for {selected_practice}")
 
-# Render as HTML
 html_table = styler.to_html()
 st.markdown(html_table, unsafe_allow_html=True)
