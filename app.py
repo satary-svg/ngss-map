@@ -16,6 +16,9 @@ def load_data():
 df4, df6, df7, df9, df10 = load_data()
 df_all = pd.concat([df4, df6, df7, df9, df10], ignore_index=True)
 
+# --- Normalize NGSS Practice names ---
+df_all["NGSS Practice"] = df_all["NGSS Practice"].astype(str).str.extract(r"(NGSS \d+)")
+
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 
 with st.sidebar:
@@ -25,7 +28,7 @@ with st.sidebar:
         ["4th", "6th", "7th", "9th", "10th"], 
         default=["4th", "6th", "7th", "9th", "10th"]
     )
-    practices = sorted(df_all["NGSS Practice"].unique())
+    practices = sorted(df_all["NGSS Practice"].dropna().unique())
     practice = st.selectbox("NGSS Practice", practices, index=0)
 
 # --- Filter dataset ---
@@ -46,4 +49,21 @@ if not filtered.empty:
 
     # Sort columns in natural numeric order
     def sort_key(col):
-        m
+        match = re.search(r"A(\d+)", str(col))
+        return int(match.group(1)) if match else 999
+    pivot = pivot[sorted(pivot.columns, key=sort_key)]
+
+    st.subheader("Results (Assignments by Grade and Unit)")
+    st.dataframe(pivot, use_container_width=True)
+
+    # Download option
+    csv = pivot.to_csv().encode("utf-8")
+    st.download_button(
+        "Download table as CSV",
+        csv,
+        file_name="ngss_comparison.csv",
+        mime="text/csv"
+    )
+
+else:
+    st.info("No matches found for this practice in the selected grade(s).")
