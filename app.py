@@ -7,78 +7,67 @@ st.set_page_config(page_title="📘 NGSS Practices Map (Grades 4–10)", layout=
 
 st.title("📘 NGSS Practices Map (Grades 4–10)")
 
-# -------------------------------
-# Load all CSV files
-# -------------------------------
-csv_files = glob.glob("*.csv")
+# 🔎 Look for all grade CSV files anywhere in the repo
+csv_files = glob.glob("**/*_database.csv", recursive=True)
 
 if not csv_files:
     st.error("No CSV files found in working directory.")
-    st.stop()
+else:
+    # Load all CSVs into one DataFrame
+    dfs = []
+    for file in csv_files:
+        try:
+            df = pd.read_csv(file)
+            df["Grade"] = os.path.basename(file).split("_")[0]  # e.g., "4th", "6th"
+            dfs.append(df)
+        except Exception as e:
+            st.error(f"❌ Error reading {file}: {e}")
 
-# Read and combine all CSVs
-dfs = []
-for file in csv_files:
-    try:
-        df = pd.read_csv(file)
-        df["Grade"] = file.split("_")[0]  # Extract grade from filename
-        dfs.append(df)
-    except Exception as e:
-        st.error(f"Error reading {file}: {e}")
+    if dfs:
+        df_all = pd.concat(dfs, ignore_index=True)
 
-df_all = pd.concat(dfs, ignore_index=True)
+        # ✅ Ensure consistent column names
+        expected_cols = ["NGSS_Number", "NGSS_Description", "Unit_Number", "Unit_Title", "Activity"]
+        missing_cols = [c for c in expected_cols if c not in df_all.columns]
+        if missing_cols:
+            st.error(f"Missing expected columns in CSVs: {missing_cols}")
+        else:
+            # Build NGSS dropdown list
+            ngss_practices = (
+                df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
+            ).unique()
 
-# -------------------------------
-# Dropdowns for NGSS filter
-# -------------------------------
-if "NGSS_Number" not in df_all.columns or "NGSS_Description" not in df_all.columns:
-    st.error("CSV files must contain 'NGSS_Number' and 'NGSS_Description' columns.")
-    st.stop()
+            selected_ngss = st.sidebar.selectbox("NGSS Practice", sorted(ngss_practices))
 
-ngss_practices = (
-    df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
-).unique()
+            # Extract number and description
+            selected_number = selected_ngss.split(":")[0].strip()
 
-selected_practice = st.selectbox("NGSS Practice", sorted(ngss_practices))
+            # Filter dataframe
+            filtered = df_all[df_all["NGSS_Number"].astype(str) == selected_number]
 
-selected_grades = st.multiselect(
-    "Grade(s)",
-    sorted(df_all["Grade"].unique(), key=lambda x: int(x.replace("th", ""))),
-    default=sorted(df_all["Grade"].unique(), key=lambda x: int(x.replace("th", ""))),
-)
+            # Pivot: Grades as rows, Units as columns
+            pivot = filtered.pivot_table(
+                index="Grade",
+                columns="Unit_Number",
+                values="Activity",
+                aggfunc=lambda x: "<br>".join(str(v) for v in x if pd.notna(v)),
+                fill_value="-",
+            )
 
-# -------------------------------
-# Filter dataset
-# -------------------------------
-ngss_num = selected_practice.split(":")[0].strip()
+            # Sort columns by Unit_Number (A0, A1, etc.)
+            pivot = pivot.reindex(sorted(pivot.columns, key=lambda x: (x[0], x[1:])), axis=1)
 
-filtered = df_all[(df_all["NGSS_Number"].astype(str) == ngss_num) & (df_all["Grade"].isin(selected_grades))]
+            # Rename columns to "A#: Unit_Title"
+            unit_titles = (
+                filtered.drop_duplicates(subset=["Unit_Number", "Unit_Title"])
+                .set_index("Unit_Number")["Unit_Title"]
+                .to_dict()
+            )
+            pivot.rename(columns=lambda x: f"{x}: {unit_titles.get(x, '')}", inplace=True)
 
-if filtered.empty:
-    st.warning("No data available for this selection.")
-    st.stop()
-
-# -------------------------------
-# Pivot table
-# -------------------------------
-pivot = filtered.pivot_table(
-    index="Grade",
-    columns=["Unit_Number", "Unit_Title"],
-    values="Activity",
-    aggfunc=lambda x: " | ".join(sorted(set([str(i) for i in x if pd.notna(i)]))),
-    fill_value="-",
-)
-
-# Clean up headers: remove "U" and format as A0, A1…
-pivot.columns = [
-    f"{unit.replace('U', '')}: {title}" for unit, title in pivot.columns.to_list()
-]
-
-# Sort grade order
-pivot = pivot.reindex(sorted(pivot.index, key=lambda x: int(x.replace("th", ""))))
-
-# -------------------------------
-# Display table
-# -------------------------------
-st.subheader(f"Results for {selected_practice}")
-st.dataframe(pivot, use_container_width=True)
+            # Show results
+            st.subheader(f"Results for {selected_ngss}")
+            st.write(
+                pivot.to_html(escape=False, index=True),
+                unsafe_allow_html=True,
+            )
