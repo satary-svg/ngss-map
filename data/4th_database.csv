@@ -1,25 +1,56 @@
-Grade,NGSS Practice,Unit,Activity/Assessment
-4th,NGSS 1,A2 Energy in Our Lives,"Asking Testable Questions (Energy Relay Station, KE/PE Inquiry Experiment)"
-4th,NGSS 1,A5 Ecosystems and Evolution,"Asking Questions and Defining Problems (Evolution Gizmo, Ecosystem Gizmo, BRF data collection and analysis)"
-4th,NGSS 2,A2 Energy in Our Lives,"Using Models (cause and effect — Energy Relay Stations, KE/PE Inquiry)"
-4th,NGSS 2,A3 Simple Machines,Developing Models (Rube Goldberg Machine); Using Models (Rube Goldberg Machine)
-4th,NGSS 2,A4 Minerals and Rocks,"Using Models (Crayon Rock Cycle, Rock Cycle Gizmo)"
-4th,NGSS 2,A5 Ecosystems and Evolution,"Developing Models (Food Web Activity, Biome Diorama)"
-4th,NGSS 3,A2 Energy in Our Lives,"Planning and Carrying Out Investigations (Energy Relay Stations, KE/PE Inquiry Experiment)"
-4th,NGSS 3,A5 Ecosystems and Evolution,"Planning and Carrying Out Investigations (BRF data collection and analysis, Ecosystem Gizmo)"
-4th,NGSS 4,A1 Welcome to Science,Taking Accurate Measurements (Measurement Scavenger Hunt)
-4th,NGSS 4,A2 Energy in Our Lives,Data Analysis (PE/KE Inquiry Experiment); Taking Accurate Measurements (PE/KE Inquiry Experiment)
-4th,NGSS 4,A4 Minerals and Rocks,"Analyzing and Interpreting Data (Properties of Minerals, Mineral Heist)"
-4th,NGSS 4,A5 Ecosystems and Evolution,"Analyzing and Interpreting Data (Ecosystem Gizmo, Evolution Gizmo, BRF data collection and analysis)"
-4th,NGSS 5,A1 Welcome to Science,"Observations and Inferences Packet (quantitative/qualitative, metric system)"
-4th,NGSS 5,A2 Energy in Our Lives,"PE/KE Inquiry Experiment (data entry/averages, quantitative vs qualitative, finding averages)"
-4th,NGSS 5,A5 Ecosystems and Evolution,"Using Mathematical Thinking (Ecosystem Gizmo, Evolution Gizmo, BRF data collection)"
-4th,NGSS 6,A2 Energy in Our Lives,Constructing Explanations (KE/PE Inquiry — claim statements from data)
-4th,NGSS 6,A3 Simple Machines,Constructing and Designing Solutions (Rube Goldberg Machine)
-4th,NGSS 6,A4 Minerals and Rocks,Constructing Explanations and Identifying Evidence (Mineral Heist)
-4th,NGSS 6,A5 Ecosystems and Evolution,"Constructing Explanations (Ecosystem Gizmo, Evolution Gizmo)"
-4th,NGSS 7,A2 Energy in Our Lives,Constructing an Explanation from a Model (PE/KE Inquiry — CER)
-4th,NGSS 7,A4 Minerals and Rocks,Engaging in Argument from Evidence (Mineral Heist)
-4th,NGSS 8,A3 Simple Machines,Communicating Scientific Information Orally (Rube Goldberg Machine)
-4th,NGSS 8,A4 Minerals and Rocks,Communicating Written Scientific Information (Mineral Slideshow)
-4th,NGSS 8,A5 Ecosystems and Evolution,Communicating Written and Oral Scientific Information (Biome Diorama)
+Grade,NGSS Number,NGSS Description,Unit Number,Unit Title,Activity
+4th,NGSS 1,Asking questions and defining problems,A1,Welcome to Science,-
+4th,NGSS 1,Asking questions and defining problems,A2,Energy in Our Lives,Asking Testable Questions (Energy Relay Station; KE/PE Inquiry Experiment)
+4th,NGSS 1,Asking questions and defining problems,A3,Simple Machines,Defining and Describing Problems; Development of a System (Rube Goldberg Machine)
+4th,NGSS 1,Asking questions and defining problems,A4,Minerals and Rocks,-
+4th,NGSS 1,Asking questions and defining problems,A5,Ecosystems and Evolution,Asking Questions and Defining Problems (Evolution Gizmo; Ecosystem Gizmo; BRF data collection and analysis)
+4th,NGSS 1,Asking questions and defining problems,A6,Robotics,-
+
+4th,NGSS 2,Developing and using models,A1,Welcome to Science,-
+4th,NGSS 2,Developing and using models,A2,Energy in Our Lives,Using Models (cause and effect; Energy Relay Stations; KE/PE Inquiry Experiment)
+4th,NGSS 2,Developing and using models,A3,Simple Machines,Developing Models (Rube Goldberg Machine); Using Models (Rube Goldberg Machine)
+4th,NGSS 2,Developing and using models,A4,Minerals and Rocks,Using Models (Crayon Rock Cycle; Rock Cycle Gizmo)
+4th,NGSS 2,Developing and using models,A5,Ecosystems and Evolution,Developing Models (Food Web Activity; Biome Diorama)
+4th,NGSS 2,Developing and using models,A6,Robotics,-
+
+4th,NGSS 3,Planning and carrying out investigations,A1,Welcome to Science,Scientific Method Investigations
+4th,NGSS 3,Planning and carrying out investigations,A2,Energy in Our Lives,KE/PE Inquiry Experiment
+4th,NGSS 3,Planning and carrying out investigations,A3,Simple Machines,Simple Machines Labs; Rube Goldberg Machine
+4th,NGSS 3,Planning and carrying out investigations,A4,Minerals and Rocks,Identifying Minerals Lab
+4th,NGSS 3,Planning and carrying out investigations,A5,Ecosystems and Evolution,BRF data collection and analysis
+4th,NGSS 3,Planning and carrying out investigations,A6,Robotics,Robot Lab
+
+4th,NGSS 4,Analyzing and interpreting data,A1,Welcome to Science,Data Analysis Investigations
+4th,NGSS 4,Analyzing and interpreting data,A2,Energy in Our Lives,Graphing Energy Data
+4th,NGSS 4,Analyzing and interpreting data,A3,Simple Machines,Data Analysis from Labs
+4th,NGSS 4,Analyzing and interpreting data,A4,Minerals and Rocks,Rock Properties Data
+4th,NGSS 4,Analyzing and interpreting data,A5,Ecosystems and Evolution,Graphing Data from BRF project
+4th,NGSS 4,Analyzing and interpreting data,A6,Robotics,Data Analysis from Robot Lab
+
+4th,NGSS 5,Using mathematical and computational thinking,A1,Welcome to Science,-
+4th,NGSS 5,Using mathematical and computational thinking,A2,Energy in Our Lives,Calculations of Energy
+4th,NGSS 5,Using mathematical and computational thinking,A3,Simple Machines,Mechanical Advantage Calculations
+4th,NGSS 5,Using mathematical and computational thinking,A4,Minerals and Rocks,-
+4th,NGSS 5,Using mathematical and computational thinking,A5,Ecosystems and Evolution,Calculating Population Change
+4th,NGSS 5,Using mathematical and computational thinking,A6,Robotics,Programming Robot Movements
+
+4th,NGSS 6,Constructing explanations and designing solutions,A1,Welcome to Science,-
+4th,NGSS 6,Constructing explanations and designing solutions,A2,Energy in Our Lives,Designing Energy Systems
+4th,NGSS 6,Constructing explanations and designing solutions,A3,Simple Machines,Designing and Explaining Rube Goldberg Machine
+4th,NGSS 6,Constructing explanations and designing solutions,A4,Minerals and Rocks,Explaining Rock Properties
+4th,NGSS 6,Constructing explanations and designing solutions,A5,Ecosystems and Evolution,Explaining Data from Ecosystem Project
+4th,NGSS 6,Constructing explanations and designing solutions,A6,Robotics,Designing Robot Tasks
+
+4th,NGSS 7,Engaging in argument from evidence,A1,Welcome to Science,-
+4th,NGSS 7,Engaging in argument from evidence,A2,Energy in Our Lives,Classroom Debate: Renewable vs Nonrenewable
+4th,NGSS 7,Engaging in argument from evidence,A3,Simple Machines,Debating Best Machine Designs
+4th,NGSS 7,Engaging in argument from evidence,A4,Minerals and Rocks,-
+4th,NGSS 7,Engaging in argument from evidence,A5,Ecosystems and Evolution,Argument from BRF Ecosystem Data
+4th,NGSS 7,Engaging in argument from evidence,A6,Robotics,-
+
+4th,NGSS 8,Obtaining, evaluating, and communicating information,A1,Welcome to Science,Poster or Presentation
+4th,NGSS 8,Obtaining, evaluating, and communicating information,A2,Energy in Our Lives,Energy Research Project
+4th,NGSS 8,Obtaining, evaluating, and communicating information,A3,Simple Machines,Simple Machines Presentations
+4th,NGSS 8,Obtaining, evaluating, and communicating information,A4,Minerals and Rocks,Rock Research Presentation
+4th,NGSS 8,Obtaining, evaluating, and communicating information,A5,Ecosystems and Evolution,Research Report or Presentation
+4th,NGSS 8,Obtaining, evaluating, and communicating information,A6,Robotics,Communicating Robot Design
