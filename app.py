@@ -3,75 +3,65 @@ import pandas as pd
 import glob
 import os
 
-st.set_page_config(page_title="📘 NGSS Practices Map (Grades 4–10)", layout="wide")
+st.set_page_config(page_title="NGSS Practices Map", layout="wide")
 
 st.title("📘 NGSS Practices Map (Grades 4–10)")
 
-# Load all CSVs from /data
-csv_files = glob.glob("data/*.csv")
+# --- Load all CSV files from /data directory ---
+data_files = glob.glob(os.path.join("data", "*_database.csv"))
 
-if not csv_files:
-    st.error("No CSV files found in working directory.")
+if not data_files:
+    st.error("No CSV files found in data/ directory.")
 else:
     dfs = []
-    for file in csv_files:
+    for file in data_files:
         grade = os.path.basename(file).split("_")[0]  # e.g. "7th"
         df = pd.read_csv(file)
         df["Grade"] = grade
         dfs.append(df)
 
-    # Combine all grade DataFrames
     df_all = pd.concat(dfs, ignore_index=True)
 
-    # NGSS Practices list
-    df_all["NGSS"] = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
-    ngss_practices = df_all["NGSS"].unique()
+    # --- Dropdown for NGSS Practices ---
+    df_all["NGSS_Practice"] = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
+    practices = df_all["NGSS_Practice"].unique()
+    selected_practice = st.selectbox("NGSS Practice", practices)
 
-    # Sidebar filter
-    selected_ngss = st.sidebar.selectbox("NGSS Practice", sorted(ngss_practices))
+    # --- Filter data for selection ---
+    num = selected_practice.split(":")[0]  # extract NGSS number (e.g. "1")
+    df_filtered = df_all[df_all["NGSS_Number"].astype(str) == num]
 
-    # Filter data for the selected NGSS Practice
-    ngss_number = selected_ngss.split(":")[0]
-    df_filtered = df_all[df_all["NGSS_Number"].astype(str) == ngss_number]
+    # --- Prepare pivot table ---
+    # Combine unit number + title + activity
+    df_filtered["Unit_Display"] = (
+        df_filtered["Unit_Number"].astype(str) + ": " +
+        df_filtered["Unit_Title"].fillna("") + "\n" +
+        df_filtered["Activity"].fillna("")
+    )
 
-    if df_filtered.empty:
-        st.warning("No data found for this NGSS practice.")
-    else:
-        st.subheader(f"Results for {selected_ngss}")
+    pivot_df = df_filtered.pivot_table(
+        index="Grade",
+        columns="Unit_Number",
+        values="Unit_Display",
+        aggfunc=lambda x: " | ".join(x)
+    ).fillna("-")
 
-        # 🔹 Get ALL possible Unit_Numbers across all grades (A0, A1, A2, etc.)
-        all_units = sorted(df_all["Unit_Number"].unique(), key=lambda x: int(x[1:]))
+    # --- Ensure all A0–A6 appear ---
+    all_units = [f"A{i}" for i in range(7)]
+    pivot_df = pivot_df.reindex(columns=all_units, fill_value="-")
 
-        # Pivot only current filter, but keep all units
-        pivot_df = df_filtered.pivot_table(
-            index="Grade",
-            columns="Unit_Number",
-            values=["Unit_Title", "Activity"],
-            aggfunc=lambda x: " | ".join([str(i) for i in x if pd.notna(i)]),
-            fill_value="-"
-        )
+    # --- Format table (unit titles bold) ---
+    def format_cell(cell):
+        if cell == "-" or pd.isna(cell):
+            return "-"
+        parts = cell.split("\n", 1)
+        if len(parts) == 2:
+            return f"**{parts[0]}**\n{parts[1]}"
+        else:
+            return f"**{cell}**"
 
-        # Build merged table with bold Unit_Title + Activity on new line
-        merged = {}
-        for unit in all_units:
-            if unit in pivot_df["Unit_Title"].columns:
-                merged[unit] = (
-                    "<b>" + pivot_df["Unit_Title"][unit].replace("-", "").fillna("-") + "</b>"
-                    + "<br><span style='font-size:12px;'>" 
-                    + pivot_df["Activity"][unit].fillna("-") + "</span>"
-                )
-            else:
-                merged[unit] = "-"
+    formatted_df = pivot_df.applymap(format_cell).reset_index()
 
-        result_df = pd.DataFrame(merged, index=pivot_df.index).reset_index()
-
-        # 🔹 Order grades correctly
-        grade_order = ["4th", "5th", "6th", "7th", "8th", "9th", "10th"]
-        result_df["Grade"] = pd.Categorical(result_df["Grade"], categories=grade_order, ordered=True)
-        result_df = result_df.sort_values("Grade")
-
-        # Display with HTML rendering
-        st.write(
-            result_df.to_html(escape=False, index=False),
-            unsafe_allow_html=True
-        )
+    # --- Display ---
+    st.subheader(f"Results for {selected_practice}")
+    st.dataframe(formatted_df, use_container_width=True)
