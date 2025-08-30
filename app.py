@@ -29,4 +29,21 @@ with st.sidebar:
     practice = st.selectbox("NGSS Practice", practices, index=0)
 
 # --- Filter dataset ---
-mask = (df_all["Grade"].isin(grade_
+mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
+filtered = df_all[mask].copy()
+
+if not filtered.empty:
+    # Extract just the unit codes like "A0", "A1", etc.
+    filtered["Unit Code"] = filtered["Unit"].str.extract(r"(A\d+)")
+
+    # Pivot into Grades × Unit Codes
+    pivot = filtered.pivot_table(
+        index="Grade",
+        columns="Unit Code",
+        values="Activity/Assessment",
+        aggfunc=lambda x: ", ".join(sorted(set(x)))
+    ).fillna("")
+
+    # Sort columns in natural numeric order
+    def sort_key(col):
+        m
