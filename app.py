@@ -32,6 +32,12 @@ else:
         grade_order = ["4th", "6th", "7th", "9th", "10th"]
         df_all["Grade"] = pd.Categorical(df_all["Grade"], categories=grade_order, ordered=True)
 
+        # --- Normalize Unit_Number ---
+        df_all["Unit_Number"] = df_all["Unit_Number"].astype(str).str.strip().str.upper()
+        df_all["Unit_Number"] = df_all["Unit_Number"].apply(
+            lambda x: "A" + x if not x.startswith("A") else x
+        )
+
         # --- Dropdown for NGSS Practice ---
         ngss_practices = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
         selected_practice = st.selectbox("NGSS Practice", sorted(ngss_practices.unique()))
@@ -40,7 +46,7 @@ else:
         practice_number = selected_practice.split(":")[0]
         df_filtered = df_all[df_all["NGSS_Number"].astype(str) == practice_number]
 
-        # Create display text (Unit Title in bold + activity indented)
+        # --- Create display text (Unit Title + Activity) ---
         df_filtered["Unit_Display"] = df_filtered.apply(
             lambda row: f"**{row['Unit_Title']}**<br>{row['Activity']}" if pd.notna(row['Activity']) else f"**{row['Unit_Title']}**",
             axis=1
