@@ -3,61 +3,66 @@ import pandas as pd
 import glob
 import os
 
-# Set page config
 st.set_page_config(page_title="📘 NGSS Practices Map (Grades 4–10)", layout="wide")
 
 st.title("📘 NGSS Practices Map (Grades 4–10)")
 
-# --- Load all CSVs from /data ---
-csv_files = glob.glob(os.path.join("data", "*.csv"))
+# Load all CSVs from /data
+csv_files = glob.glob("data/*.csv")
 
 if not csv_files:
-    st.error("❌ No CSV files found in `data/` directory.")
+    st.error("No CSV files found in working directory.")
 else:
     dfs = []
     for file in csv_files:
-        try:
-            df = pd.read_csv(file)
-            dfs.append(df)
-        except Exception as e:
-            st.error(f"Error reading {file}: {e}")
+        grade = os.path.basename(file).split("_")[0]  # e.g. "7th"
+        df = pd.read_csv(file)
+        df["Grade"] = grade
+        dfs.append(df)
 
-    if dfs:
-        # Combine into single dataframe
-        df_all = pd.concat(dfs, ignore_index=True)
+    # Combine all grade DataFrames
+    df_all = pd.concat(dfs, ignore_index=True)
 
-        # Dropdown: NGSS Practice (Number + Description)
-        df_all["NGSS_Full"] = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
-        ngss_options = df_all["NGSS_Full"].unique()
+    # NGSS Practices list
+    df_all["NGSS"] = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
+    ngss_practices = df_all["NGSS"].unique()
 
-        selected_ngss = st.selectbox("NGSS Practice", sorted(ngss_options))
+    # Sidebar filter
+    selected_ngss = st.sidebar.selectbox("NGSS Practice", sorted(ngss_practices))
 
-        # Filter for selected NGSS
-        ngss_number = selected_ngss.split(":")[0].strip()
-        df_filtered = df_all[df_all["NGSS_Number"].astype(str) == ngss_number]
+    # Filter data for the selected NGSS Practice
+    ngss_number = selected_ngss.split(":")[0]
+    df_filtered = df_all[df_all["NGSS_Number"].astype(str) == ngss_number]
 
-        if df_filtered.empty:
-            st.warning(f"No data found for {selected_ngss}")
-        else:
-            # Create unique Unit headers: "A1: Skeletal System"
-            df_filtered["Unit_Header"] = df_filtered["Unit_Number"].astype(str) + ": " + df_filtered["Unit_Title"]
-
-            # Pivot to wide format
-            pivot_df = df_filtered.pivot_table(
-                index="Grade",
-                columns="Unit_Header",
-                values="Activity",
-                aggfunc=lambda x: " | ".join([str(i) for i in x if pd.notna(i)]),
-                fill_value="-"
-            ).reset_index()
-
-            # Sort grades properly (4th, 6th, 7th, 9th, 10th)
-            grade_order = ["4th", "6th", "7th", "9th", "10th"]
-            pivot_df["Grade"] = pd.Categorical(pivot_df["Grade"], categories=grade_order, ordered=True)
-            pivot_df = pivot_df.sort_values("Grade")
-
-            st.subheader(f"Results for {selected_ngss}")
-            st.dataframe(pivot_df, use_container_width=True)
-
+    if df_filtered.empty:
+        st.warning("No data found for this NGSS practice.")
     else:
-        st.error("❌ No valid CSV data could be loaded.")
+        st.subheader(f"Results for {selected_ngss}")
+
+        # Pivot table: columns = Unit_Number, values = Unit_Title + Activity
+        pivot_df = df_filtered.pivot_table(
+            index="Grade",
+            columns="Unit_Number",
+            values=["Unit_Title", "Activity"],
+            aggfunc=lambda x: " | ".join([str(i) for i in x if pd.notna(i)]),
+            fill_value="-"
+        )
+
+        # Merge Unit_Title + Activity into one cell, header only A0, A1...
+        new_cols = []
+        for col in pivot_df.columns.levels[1]:  # iterate over each Unit_Number
+            pivot_df[(col)] = pivot_df["Unit_Title"][col] + ": " + pivot_df["Activity"][col]
+            new_cols.append(col)
+
+        pivot_df = pivot_df[new_cols].reset_index()
+
+        # Clean up NaNs and formatting
+        pivot_df = pivot_df.replace({
+            "nan: nan": "-",
+            "nan": "-",
+            ": -": "-",
+            "-:": "-"
+        })
+
+        # Display
+        st.dataframe(pivot_df, use_container_width=True)
