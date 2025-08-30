@@ -76,7 +76,7 @@ st.subheader(f"Results for {selected_practice}")
 
 # Add custom CSS for taller cells
 st.markdown(
-    """
+    
     <style>
     table {
         border-collapse: collapse;
