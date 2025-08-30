@@ -1,66 +1,139 @@
-import streamlit as st
-import pandas as pd
-import glob
 import os
+import re
+import glob
+import pandas as pd
+import streamlit as st
 
 st.set_page_config(page_title="NGSS Practices Map (Grades 4–10)", layout="wide")
-
 st.title("📘 NGSS Practices Map (Grades 4–10)")
 
-# --- Load all CSVs ---
-data_files = glob.glob("data/*_database.csv")
+DATA_DIR = "data"
+GRADE_ORDER = ["4th", "6th", "7th", "9th", "10th"]
+UNIT_COL_ORDER = [f"A{i}" for i in range(7)]  # A0..A6
 
-if not data_files:
+# ---------- helpers ----------
+def normalize_unit(value: str):
+    """
+    Make 'A1', 'UA1', 'Unit A1', 'A 1' → 'A1'.
+    Return None if we can't recognize it (column will be blank).
+    """
+    if pd.isna(value):
+        return None
+    s = str(value).strip()
+    # Look for optional 'U' before A, optional spaces, and a single digit 0-6
+    m = re.search(r"\bU?\s*A\s*([0-6])\b", s, flags=re.IGNORECASE)
+    if m:
+        return f"A{m.group(1)}"
+    # Fallback: direct 'A0..A6' inside longer text
+    m = re.search(r"\bA([0-6])\b", s, flags=re.IGNORECASE)
+    if m:
+        return f"A{m.group(1)}"
+    return None
+
+
+def bullet_join(items):
+    # Turn a sequence into HTML bullet list (clean & compact).
+    cleaned = [str(x).strip() for x in items if str(x).strip() and str(x).strip() != "nan"]
+    if not cleaned:
+        return "–"
+    if len(cleaned) == 1:
+        return cleaned[0]
+    bullets = "".join(f"<li>{c}</li>" for c in cleaned)
+    return f"<ul style='margin:0 0 0 1rem;padding:0'>{bullets}</ul>"
+
+
+# ---------- load ----------
+csvs = sorted(glob.glob(os.path.join(DATA_DIR, "*_database.csv")))
+if not csvs:
     st.error("No CSV files found in the `data/` directory.")
-else:
-    dfs = []
-    for file in data_files:
-        grade = os.path.basename(file).split("_")[0]  # e.g. "4th", "10th"
-        df = pd.read_csv(file)
+    st.stop()
 
-        # Normalize Unit_Number (strip titles, keep A0–A6 only)
-        df["Unit_Number"] = df["Unit_Number"].str.extract(r"(A\d+)")
+frames = []
+for path in csvs:
+    grade = os.path.basename(path).split("_")[0]  # "4th", "10th", etc.
+    try:
+        df = pd.read_csv(path)
+    except Exception as e:
+        st.error(f"Failed to read {path}: {e}")
+        st.stop()
 
-        # Combine Unit_Title + NGSS_Description
-        df["Content"] = "**" + df["Unit_Title"].astype(str) + "**<br>" + df["NGSS_Description"].astype(str)
+    # Required columns check (be forgiving with capitalization)
+    cols = {c.lower(): c for c in df.columns}
+    required = ["unit_number", "unit_title", "ngss_number", "ngss_description"]
+    for r in required:
+        if r not in cols:
+            st.error(f"Missing column `{r}` in {os.path.basename(path)}.")
+            st.stop()
 
-        # Add grade column
-        df["Grade"] = grade
-        dfs.append(df)
+    df = df.rename(columns={cols["unit_number"]: "Unit_Number",
+                            cols["unit_title"]: "Unit_Title",
+                            cols["ngss_number"]: "NGSS_Number",
+                            cols["ngss_description"]: "NGSS_Description"})
 
-    df_all = pd.concat(dfs, ignore_index=True)
+    # Normalize unit labels to A0..A6
+    df["Unit_Number"] = df["Unit_Number"].apply(normalize_unit)
 
-    # Dropdown for NGSS practices
-    practices = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
-    unique_practices = practices.unique()
-    selected_practice = st.selectbox("NGSS Practice", sorted(unique_practices))
+    # Attach grade
+    df["Grade"] = grade
 
-    # Filter
-    ngss_number = selected_practice.split(":")[0]
-    filtered = df_all[df_all["NGSS_Number"].astype(str) == ngss_number]
+    # A single content string for the chosen practice
+    df["Content"] = "**" + df["Unit_Title"].astype(str) + "**<br>" + df["NGSS_Description"].astype(str)
+    frames.append(df)
 
-    if filtered.empty:
-        st.warning("No data available for this practice.")
-    else:
-        # Pivot: rows = Grade, cols = A0–A6, values = Content
-        pivot = filtered.pivot_table(
-            index="Grade", columns="Unit_Number", values="Content", 
-            aggfunc=lambda x: "<br>".join(x)
-        ).fillna("-")
+df_all = pd.concat(frames, ignore_index=True)
 
-        # Reorder grades
-        grade_order = ["4th", "6th", "7th", "9th", "10th"]
-        pivot = pivot.reindex(grade_order)
+# ---------- UI: choose practice ----------
+practice_options = (
+    df_all["NGSS_Number"].astype(str).str.strip() + ": " + df_all["NGSS_Description"].str.strip()
+)
+# Keep first occurrence text per NGSS_Number to avoid giant duplicates in dropdown
+# (many rows share the same practice text)
+first_per_number = (
+    df_all.drop_duplicates(subset=["NGSS_Number"])  # one row per number
+    .assign(option=lambda d: d["NGSS_Number"].astype(str).str.strip() + ": " + d["NGSS_Description"].str.strip())
+    .sort_values("NGSS_Number")
+)
+selected = st.selectbox(
+    "NGSS Practice",
+    first_per_number["option"].tolist()
+)
+selected_number = selected.split(":")[0].strip()
 
-        # Reorder columns A0–A6
-        unit_order = [f"A{i}" for i in range(7)]
-        pivot = pivot.reindex(columns=unit_order)
+# ---------- filter by practice & build table ----------
+filtered = df_all[df_all["NGSS_Number"].astype(str).str.strip() == selected_number].copy()
 
-        # Reset index to show Grade as column
-        pivot.reset_index(inplace=True)
+# Keep only valid A0..A6 rows
+filtered["Unit_Number"] = filtered["Unit_Number"].where(filtered["Unit_Number"].isin(UNIT_COL_ORDER))
+filtered = filtered.dropna(subset=["Unit_Number"])
 
-        st.markdown(f"### Results for {selected_practice}")
-        st.write(
-            pivot.to_html(escape=False, index=False), 
-            unsafe_allow_html=True
-        )
+if filtered.empty:
+    st.warning("No matches for this practice.")
+    st.stop()
+
+# Aggregate to a single cell per (Grade, Unit_Number)
+agg = (
+    filtered
+    .groupby(["Grade", "Unit_Number"], as_index=False)["Content"]
+    .agg(lambda s: bullet_join(s))
+)
+
+# Pivot to Grade rows x A0..A6 columns
+table = (
+    agg.pivot(index="Grade", columns="Unit_Number", values="Content")
+    .reindex(UNIT_COL_ORDER, axis=1)  # ensure columns A0..A6
+    .reindex(GRADE_ORDER, axis=0)     # ensure grade order 4th→10th
+)
+
+# Replace NaN with en-dash for display
+table = table.fillna("–")
+
+# Ensure columns exist for any missing A0..A6
+for col in UNIT_COL_ORDER:
+    if col not in table.columns:
+        table[col] = "–"
+
+# Final tidy layout: Grade first, then A0..A6
+table = table.reset_index()[["Grade"] + UNIT_COL_ORDER]
+
+st.markdown(f"### Results for {selected}")
+st.write(table.to_html(escape=False, index=False), unsafe_allow_html=True)
