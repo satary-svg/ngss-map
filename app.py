@@ -23,6 +23,7 @@ df_all["NGSS Practice"] = df_all["NGSS Practice"].astype(str).str.strip()
 # Extract just the unit codes (A0, A1, …)
 df_all["Unit Code"] = df_all["Unit"].str.extract(r"(A\d+)")
 
-# Sort NGSS practices by number for dropdown (all in one line now!)
-unique_practices = sorted(df_all["NGSS Practice"].dropna().unique(),
-                          key=lambda x: int(re.search(r"NGS
+# --- Sort NGSS practices safely ---
+def practice_sort_key(x):
+    match = re.search(r"NGSS (\d+)", str(x))
+    return in
