@@ -20,6 +20,17 @@ for file in data_files:
 
 df_all = pd.concat(all_dfs, ignore_index=True)
 
+# --- Figure out the unit column (different files might call it differently) ---
+unit_col = None
+for candidate in ["Unit Code", "Unit", "Unit_Name"]:
+    if candidate in df_all.columns:
+        unit_col = candidate
+        break
+
+if not unit_col:
+    st.error("Could not find a Unit column in the data. Please check your CSV headers.")
+    st.stop()
+
 # --- Unique practices (sorted) ---
 unique_practices = sorted(
     df_all["NGSS Practice"].dropna().unique(),
@@ -47,7 +58,7 @@ if not filtered.empty:
     # Pivot table: rows=Grade, cols=Unit, values=Assignments
     pivot = filtered.pivot_table(
         index="Grade", 
-        columns="Unit Code", 
+        columns=unit_col, 
         values="Assignment Title", 
         aggfunc=lambda x: list(x),
         fill_value=""
@@ -77,15 +88,10 @@ if not filtered.empty:
     )
     formatted = formatted.sort_index()
 
-    # --- Remove redundant Unit Code col if present ---
-    if "Unit Code" in formatted.columns:
-        formatted = formatted.drop(columns=["Unit Code"])
-
     # Reset index for display
     formatted.reset_index(inplace=True)
-    formatted.rename(columns={"Grade": "Grade"}, inplace=True)
 
-    # Display HTML table with custom formatting
+    # Display HTML table
     st.write(
         formatted.to_html(escape=False, index=False),
         unsafe_allow_html=True
