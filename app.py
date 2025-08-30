@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 
 st.set_page_config(page_title="NGSS Practices Map (7th & 9th)", layout="wide")
 
@@ -24,22 +25,28 @@ with st.sidebar:
 mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
 filtered = df_all[mask].copy()
 
-# --- Pivot table: Grades = rows, Units = columns, Activities = values ---
 if not filtered.empty:
-    # Extract just the unit codes like "A0", "A1" etc.
+    # Extract just the unit codes like "A0", "A1", etc.
     filtered["Unit Code"] = filtered["Unit"].str.extract(r"(A\d+)")
-    
+
+    # Pivot into Grades × Unit Codes
     pivot = filtered.pivot_table(
         index="Grade",
         columns="Unit Code",
         values="Activity/Assessment",
         aggfunc=lambda x: ", ".join(sorted(set(x)))
     ).fillna("")
-    
+
+    # Sort columns in natural numeric order
+    def sort_key(col):
+        match = re.search(r"A(\d+)", str(col))
+        return int(match.group(1)) if match else 999
+    pivot = pivot[sorted(pivot.columns, key=sort_key)]
+
     st.subheader("Results (Assignments by Grade and Unit)")
     st.dataframe(pivot, use_container_width=True)
-    
-    # Allow download
+
+    # Download option
     csv = pivot.to_csv().encode("utf-8")
     st.download_button("Download table as CSV", csv, file_name="ngss_comparison.csv", mime="text/csv")
 
