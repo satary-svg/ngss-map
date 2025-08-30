@@ -21,7 +21,7 @@ for grade, file in csv_files.items():
     path = os.path.join(data_dir, file)
     if os.path.exists(path):
         df = pd.read_csv(path)
-        df["Grade"] = grade  # clean grade label
+        df["Grade"] = grade
         dfs.append(df)
     else:
         st.warning(f"⚠️ Missing file for {grade} (upload or place {file} in working directory)")
@@ -32,7 +32,6 @@ if not dfs:
 df_all = pd.concat(dfs, ignore_index=True)
 
 # -------- Clean NGSS Practices --------
-# Keep only full descriptive names (those with ":")
 df_all["NGSS Practice"] = df_all["NGSS Practice"].apply(
     lambda x: x if isinstance(x, str) and ":" in x else None
 )
@@ -50,7 +49,6 @@ if filtered.empty:
     st.stop()
 
 # -------- Pivot to Table --------
-# Group activities by Grade + Unit
 aggfunc = lambda x: "<br>".join(x.dropna().astype(str))
 
 pivot = filtered.pivot_table(
@@ -65,18 +63,24 @@ pivot = filtered.pivot_table(
 grade_order = ["4th", "6th", "7th", "9th", "10th"]
 pivot = pivot.reindex(grade_order)
 
-# -------- Format cells --------
+# -------- Clean up cells (remove "nan", remove unit names) --------
 styled = pivot.copy()
 
 for col in styled.columns:
     styled[col] = styled[col].apply(
-        lambda x, colname=col: f"<b><u>{colname.replace('A1: ', '').replace('A2: ', '').replace('A3: ', '').replace('A4: ', '').replace('A5: ', '').replace('A6: ', '')}</u></b><br>{x}" if x else ""
+        lambda x: x.replace("nan", "").strip() if isinstance(x, str) else ""
     )
 
 # -------- Display --------
 st.subheader(f"Results for {selected_practice}")
 
+# Add custom CSS for taller cells
 st.markdown(
-    styled.to_html(escape=False).replace("\\n", "<br>"),
-    unsafe_allow_html=True
-)
+    """
+    <style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #ddd
