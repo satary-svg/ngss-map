@@ -8,7 +8,7 @@ st.set_page_config(page_title="NGSS Practices Map", layout="wide")
 st.title("📘 NGSS Practices Map (Grades 4–10)")
 
 # --- Load all CSVs ---
-csv_files = glob.glob("*.csv")
+csv_files = glob.glob("data/*.csv")
 if not csv_files:
     st.error("No CSV files found in working directory.")
     st.stop()
