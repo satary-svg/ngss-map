@@ -2,85 +2,86 @@ import streamlit as st
 import pandas as pd
 import os
 
-st.set_page_config(page_title="NGSS Skills Map", layout="wide")
-
-# Title
+# -----------------------------
+# Config
+# -----------------------------
+st.set_page_config(page_title="NGSS Practices Map", layout="wide")
 st.title("📘 NGSS Practices Map (Grades 4–10)")
 
-# Load all CSVs
-data_path = "data"
-all_files = [
-    "4th_database.csv",
-    "6th_database.csv",
-    "7th_database.csv",
-    "9th_database.csv",
-    "10th_database.csv"
-]
+# CSVs are now stored inside /data folder
+DATA_DIR = "data"
 
-dfs = []
-for file in all_files:
-    file_path = os.path.join(data_path, file)
+GRADE_FILES = {
+    "4th": "4th_database.csv",
+    "6th": "6th_database.csv",
+    "7th": "7th_database.csv",
+    "9th": "9th_database.csv",
+    "10th": "10th_database.csv"
+}
+
+# -----------------------------
+# Load Data
+# -----------------------------
+all_dfs = []
+missing = []
+
+for grade, filename in GRADE_FILES.items():
+    file_path = os.path.join(DATA_DIR, filename)
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)
-        dfs.append(df)
+        df["Grade"] = grade
+        all_dfs.append(df)
     else:
-        st.error(f"Missing file: {file}")
+        missing.append(grade)
 
-if not dfs:
+if missing:
+    st.warning(f"⚠️ Missing files for: {', '.join(missing)}")
+
+if not all_dfs:
+    st.error("❌ No data available. Please upload CSVs into the /data folder.")
     st.stop()
 
-data = pd.concat(dfs, ignore_index=True)
+df_all = pd.concat(all_dfs, ignore_index=True)
 
-# Ensure consistent ordering of grades
-grade_order = ["4th", "6th", "7th", "9th", "10th"]
-data["Grade"] = pd.Categorical(data["Grade"], categories=grade_order, ordered=True)
+# -----------------------------
+# Filters
+# -----------------------------
+ngss_practices = df_all["NGSS_Number"].astype(str) + ": " + df_all["NGSS_Description"]
+ngss_practices = ngss_practices.unique().tolist()
 
-# Dropdown for NGSS practices (number + description)
-data["NGSS Combined"] = data["NGSS Number"] + " - " + data["NGSS Description"]
-skills = sorted(data["NGSS Combined"].unique())
-selected_skill = st.selectbox("Select an NGSS Practice:", skills)
+selected_practice = st.selectbox("NGSS Practice", sorted(ngss_practices))
 
-if selected_skill:
-    # Filter data
-    ngss_number, ngss_desc = selected_skill.split(" - ", 1)
-    filtered = data[(data["NGSS Number"] == ngss_number) & 
-                    (data["NGSS Description"] == ngss_desc)]
+grades = st.multiselect(
+    "Grade(s)",
+    options=list(GRADE_FILES.keys()),
+    default=list(GRADE_FILES.keys())
+)
 
-    # Pivot into table format
-    pivot = filtered.pivot_table(
-        index="Grade",
-        columns="Unit Number",
-        values=["Unit Title", "Activity"],
-        aggfunc=lambda x: " | ".join([str(i) for i in x if pd.notna(i) and i != "-"]),
-        fill_value="-"
-    )
+# -----------------------------
+# Filtered Data
+# -----------------------------
+if selected_practice and grades:
+    ngss_number = selected_practice.split(":")[0].strip()
 
-    # Flatten MultiIndex columns
-    pivot.columns = [f"{col[1]}" for col in pivot.columns]
+    filtered = df_all[
+        (df_all["NGSS_Number"].astype(str) == ngss_number)
+        & (df_all["Grade"].isin(grades))
+    ]
 
-    # Format cells: bold+underline for Unit Title, line breaks for activities
-    def format_cell(row, unit):
-        title = row.get((unit), "-")
-        # Look up the unit title from filtered data
-        subset = filtered[(filtered["Grade"] == row.name) & (filtered["Unit Number"] == unit)]
-        if subset.empty:
-            return "-"
-        unit_title = subset["Unit Title"].values[0]
-        activity = subset["Activity"].values[0]
-        if activity == "-" or pd.isna(activity):
-            return f"**_{unit_title}_**"
-        else:
-            acts = [a.strip() for a in str(activity).split(";")]
-            acts_str = "<br>".join(acts)
-            return f"**<u>{unit_title}</u>**<br>{acts_str}"
+    if filtered.empty:
+        st.info("ℹ️ No results for this NGSS practice and selected grades.")
+    else:
+        # Pivot so Units are columns, Grades are rows
+        pivot = filtered.pivot_table(
+            index="Grade",
+            columns=["Unit_Number", "Unit_Title"],
+            values="Activity",
+            aggfunc=lambda x: "<br>".join([str(i) for i in x if i != "-"]),
+            fill_value="-"
+        )
 
-    # Build final styled table
-    final = pd.DataFrame(index=pivot.index)
-    for unit in sorted(filtered["Unit Number"].unique(), key=lambda x: int(x[1:])):
-        final[unit] = pivot.index.map(lambda grade: format_cell(filtered[filtered["Grade"] == grade], unit))
+        # Clean column names for display
+        pivot.columns = [f"{u}: {t}" for u, t in pivot.columns]
 
-    # Show table with markdown rendering
-    st.write("### NGSS Practice:", selected_skill)
-    st.write("Rows = Grades | Columns = Units | Cells = Unit Title + Activities")
-
-    st.write(final.to_html(escape=False), unsafe_allow_html=True)
+        st.markdown(f"### Results for {selected_practice}")
+        st.write(pivot.to_html(escape=False), unsafe_allow_html=True)
