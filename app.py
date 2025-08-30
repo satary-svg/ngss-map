@@ -33,6 +33,20 @@ unique_practices = sorted(
     key=practice_sort_key
 )
 
+# --- Build unified NGSS practice labels ---
+practice_labels = []
+for p in unique_practices:
+    # If the practice already has description, keep it
+    if ":" in p:
+        practice_labels.append(p)
+    else:
+        # If only "NGSS 1", try to find longer description in dataset
+        match = df_all[df_all["NGSS Practice"].str.startswith(p)].iloc[0]["NGSS Practice"]
+        practice_labels.append(match)
+
+# Remove duplicates and sort
+practice_labels = sorted(set(practice_labels), key=practice_sort_key)
+
 # --- UI ---
 st.title("NGSS Practices Map (Grades 4, 6, 7, 9, 10)")
 
@@ -43,10 +57,10 @@ with st.sidebar:
         ["4th", "6th", "7th", "9th", "10th"],
         default=["4th", "6th", "7th", "9th", "10th"]
     )
-    practice = st.selectbox("NGSS Practice", unique_practices, index=0)
+    practice = st.selectbox("NGSS Practice", practice_labels, index=0)
 
 # --- Filter dataset ---
-mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"] == practice)
+mask = (df_all["Grade"].isin(grades)) & (df_all["NGSS Practice"].str.startswith(practice.split(":")[0]))
 filtered = df_all[mask].copy()
 
 if not filtered.empty:
